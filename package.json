@@ -1,0 +1,46 @@
+{
+  "name": "react-google-photos-picker",
+  "version": "1.0.0",
+  "description": "React hook and utilities for the Google Photos Picker API — pick photos by link, no download or storage needed",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "tsup"
+  },
+  "keywords": [
+    "google-photos",
+    "picker",
+    "google-photos-picker",
+    "react",
+    "hook",
+    "photos",
+    "google-photos-api"
+  ],
+  "peerDependencies": {
+    "react": ">=17.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^7.0.2"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/skilead770/rgp"
+  },
+  "allowScripts": {
+    "esbuild@0.27.7": true
+  }
+}
