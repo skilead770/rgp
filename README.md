@@ -15,11 +15,52 @@ Display them with the included `<AuthPhoto>` component that fetches with a beare
 npm install react-google-photos-picker
 ```
 
+## GCP Setup (one-time)
+
+### 1. Create a Google Cloud project
+Go to [console.cloud.google.com](https://console.cloud.google.com) → **New Project** → give it a name.
+
+### 2. Enable the Google Photos Picker API
+**APIs & Services → Enable APIs and Services** → search for **"Google Photos Picker API"** → Enable.
+
+### 3. Configure the OAuth consent screen
+**APIs & Services → OAuth consent screen**
+- User type: **External**
+- Fill in app name, support email, developer email → Save
+- Under **Scopes** → Add scope → search for `photospicker` → select  
+  `https://www.googleapis.com/auth/photospicker.mediaitems.readonly` → Save
+- Under **Test users** → add your Google account email → Save
+
+> ⚡ This scope does **not** require Google's manual verification — you can publish the app immediately without review.
+
+### 4. Create OAuth 2.0 credentials
+**APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**
+- Application type: **Web application**
+- **Authorized JavaScript origins**: add your app's domain (e.g. `https://myapp.web.app` and `http://localhost:5173`)
+- **Authorized redirect URIs**: same domains
+- Click **Create** → copy the **Client ID**
+
+### 5. Wire up in your app
+This SDK works with any OAuth flow that returns a Google access token.  
+Example with **Firebase Auth**:
+
+```js
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
+
+const provider = new GoogleAuthProvider()
+provider.addScope('https://www.googleapis.com/auth/photospicker.mediaitems.readonly')
+provider.setCustomParameters({ prompt: 'consent' })
+
+const result = await signInWithPopup(auth, provider)
+const token = GoogleAuthProvider.credentialFromResult(result).accessToken
+// pass `token` to useGooglePhotosPicker()
+```
+
 ## Prerequisites
 
-1. Enable **Google Photos Picker API** in Google Cloud Console
-2. Add scope `https://www.googleapis.com/auth/photospicker.mediaitems.readonly` to your OAuth consent screen
-3. Obtain a Google OAuth access token with that scope (e.g. via Firebase Auth `GoogleAuthProvider`)
+1. Google Cloud project with **Google Photos Picker API** enabled (see GCP Setup above)
+2. OAuth consent screen configured with `photospicker.mediaitems.readonly` scope
+3. A Google OAuth access token with that scope
 
 ## Quick start
 
