@@ -21,8 +21,10 @@ var index_exports = {};
 __export(index_exports, {
   AuthPhoto: () => AuthPhoto,
   createPickerSession: () => createPickerSession,
+  deletePickerSession: () => deletePickerSession,
   getPickerMediaItems: () => getPickerMediaItems,
   getPickerSession: () => getPickerSession,
+  openPickerPopup: () => openPickerPopup,
   photoUrl: () => photoUrl,
   pickPhotos: () => pickPhotos,
   thumbUrl: () => thumbUrl,
@@ -52,14 +54,20 @@ async function apiFetch(url, token, opts = {}) {
   }
   return res.json();
 }
-async function createPickerSession(token) {
+async function createPickerSession(token, { maxItemCount } = {}) {
+  const body = maxItemCount ? { pickingConfig: { maxItemCount: String(maxItemCount) } } : {};
   return apiFetch(`${PICKER_BASE}/sessions`, token, {
     method: "POST",
-    body: JSON.stringify({})
+    body: JSON.stringify(body)
   });
 }
 async function getPickerSession(token, sessionId) {
   return apiFetch(`${PICKER_BASE}/sessions/${encodeURIComponent(sessionId)}`, token);
+}
+async function deletePickerSession(token, sessionId) {
+  return apiFetch(`${PICKER_BASE}/sessions/${encodeURIComponent(sessionId)}`, token, {
+    method: "DELETE"
+  });
 }
 async function getPickerMediaItems(token, sessionId, pageSize = 100) {
   return apiFetch(
@@ -67,33 +75,35 @@ async function getPickerMediaItems(token, sessionId, pageSize = 100) {
     token
   );
 }
-async function pickPhotos(token, opts = {}) {
-  const {
-    pollInterval = 2e3,
-    retryAfterClose = 5,
-    retryDelay = 2e3,
-    popupFeatures = "width=1000,height=700,menubar=no,toolbar=no",
-    onStatus = () => {
-    }
-  } = opts;
-  onStatus("Creating picker session\u2026");
-  const session = await createPickerSession(token);
-  onStatus("Opening Google Photos picker\u2026");
-  const popup = window.open(session.pickerUri, "gphotosPicker", popupFeatures);
+function openPickerPopup(pickerUri, {
+  popupFeatures = "width=1000,height=700,menubar=no,toolbar=no"
+} = {}) {
+  const popup = window.open(pickerUri, "gphotosPicker", popupFeatures);
   if (!popup) {
-    throw Object.assign(new Error("Popup was blocked \u2014 allow popups for this site."), { code: "POPUP_BLOCKED" });
+    throw Object.assign(
+      new Error("Popup was blocked \u2014 allow popups for this site."),
+      { code: "POPUP_BLOCKED" }
+    );
   }
-  onStatus("Waiting for photo selection\u2026");
-  const result = await new Promise((resolve, reject) => {
+  return popup;
+}
+async function waitForSelection(token, sessionId, popup, {
+  pollInterval = 2e3,
+  retryAfterClose = 5,
+  retryDelay = 2e3,
+  onStatus = () => {
+  }
+} = {}) {
+  return new Promise((resolve, reject) => {
     const poll = setInterval(async () => {
       try {
         if (popup.closed) {
           clearInterval(poll);
-          onStatus("Popup closed \u2014 checking for selection\u2026");
+          onStatus("Window closed \u2014 checking for selection\u2026");
           let remaining = retryAfterClose;
           while (remaining-- > 0) {
             await new Promise((r) => setTimeout(r, retryDelay));
-            const s2 = await getPickerSession(token, session.id);
+            const s2 = await getPickerSession(token, sessionId);
             if (s2.mediaItemsSet) {
               resolve("done");
               return;
@@ -102,10 +112,13 @@ async function pickPhotos(token, opts = {}) {
           resolve("closed");
           return;
         }
-        const s = await getPickerSession(token, session.id);
+        const s = await getPickerSession(token, sessionId);
         if (s.mediaItemsSet) {
           clearInterval(poll);
-          popup.close();
+          try {
+            popup.close();
+          } catch (_) {
+          }
           resolve("done");
         }
       } catch (err) {
@@ -114,9 +127,26 @@ async function pickPhotos(token, opts = {}) {
       }
     }, pollInterval);
   });
-  if (result === "closed") {
-    return [];
+}
+async function pickPhotos(token, opts = {}) {
+  const {
+    maxItemCount,
+    popupFeatures = "width=1000,height=700,menubar=no,toolbar=no",
+    onStatus = () => {
+    },
+    ...pollOpts
+  } = opts;
+  onStatus("Creating picker session\u2026");
+  const session = await createPickerSession(token, { maxItemCount });
+  onStatus("Opening Google Photos\u2026");
+  const popup = openPickerPopup(session.pickerUri, { popupFeatures });
+  try {
+    popup.focus();
+  } catch (_) {
   }
+  onStatus("Waiting for photo selection\u2026");
+  const result = await waitForSelection(token, session.id, popup, { ...pollOpts, onStatus });
+  if (result === "closed") return [];
   onStatus("Fetching selected photos\u2026");
   const data = await getPickerMediaItems(token, session.id);
   return normalizeItems(data.mediaItems || []);
@@ -143,31 +173,30 @@ var import_react = require("react");
 function useGooglePhotosPicker({ token, onPick, onError, pickerOpts = {} } = {}) {
   const [picking, setPicking] = (0, import_react.useState)(false);
   const [status, setStatus] = (0, import_react.useState)("");
+  const runningRef = (0, import_react.useRef)(false);
   const open = (0, import_react.useCallback)(async () => {
+    if (runningRef.current) return;
     if (!token) {
-      const err = new Error("No Google OAuth token provided.");
-      onError == null ? void 0 : onError(err);
+      onError == null ? void 0 : onError(new Error("No Google OAuth token provided."));
       return;
     }
+    runningRef.current = true;
     setPicking(true);
     setStatus("");
     try {
-      const photos = await pickPhotos(token, {
-        ...pickerOpts,
-        onStatus: setStatus
-      });
+      const photos = await pickPhotos(token, { ...pickerOpts, onStatus: setStatus });
       if (photos.length > 0) {
         onPick == null ? void 0 : onPick(photos);
-        setStatus(`\u2713 ${photos.length} photo${photos.length !== 1 ? "s" : ""} selected`);
-        setTimeout(() => setStatus(""), 3e3);
+        setStatus(`\u2713 ${photos.length} photo${photos.length !== 1 ? "s" : ""} added`);
       } else {
         setStatus("No photos selected.");
-        setTimeout(() => setStatus(""), 3e3);
       }
+      setTimeout(() => setStatus(""), 3e3);
     } catch (err) {
       setStatus(`Error: ${err.message}`);
       onError == null ? void 0 : onError(err);
     } finally {
+      runningRef.current = false;
       setPicking(false);
     }
   }, [token, onPick, onError, pickerOpts]);
@@ -235,8 +264,10 @@ function AuthPhoto({ url, token, style, placeholder, ...rest }) {
 0 && (module.exports = {
   AuthPhoto,
   createPickerSession,
+  deletePickerSession,
   getPickerMediaItems,
   getPickerSession,
+  openPickerPopup,
   photoUrl,
   pickPhotos,
   thumbUrl,

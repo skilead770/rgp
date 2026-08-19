@@ -187,6 +187,19 @@ import {
 - **Scope**: Only `photospicker.mediaitems.readonly` is required — no Google verification needed (unlike the Library API).
 - **Album info**: The Picker API does not expose which album a photo belongs to. Only filename, dimensions, and creation time are available.
 
+## Album browsing
+
+Programmatic album listing is not possible. Google removed the `photoslibrary.readonly` scope in April 2025 — `albums.list` returns 403. The Picker API has no album filter either.
+
+**The only way to reach a specific album** is through the Picker's built-in search bar:
+
+> Tell your users: *"In the Google Photos window, type your album name in the search box."*
+
+**Important limitation — English album names only:**  
+The Picker's search only returns results for album names written in English (Latin characters). Albums named in other languages (Hebrew, Arabic, Chinese, etc.) will not appear in the search results. This is a Google Picker limitation — it cannot be worked around via the API.
+
+If your users have albums in non-Latin languages, advise them to rename the album to an English name in Google Photos before picking.
+
 ## License
 
 MIT
