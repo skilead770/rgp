@@ -1,6 +1,8 @@
+var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __export = (target, all) => {
   for (var name in all)
@@ -14,6 +16,14 @@ var __copyProps = (to, from, except, desc) => {
   }
   return to;
 };
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // src/index.js
@@ -214,7 +224,7 @@ function thumbUrl(baseUrl, size = 300) {
 }
 
 // src/useAuthPhoto.jsx
-var import_react2 = require("react");
+var import_react2 = __toESM(require("react"), 1);
 function useAuthPhoto(url, token) {
   const [src, setSrc] = (0, import_react2.useState)(null);
   (0, import_react2.useEffect)(() => {
@@ -244,7 +254,7 @@ function useAuthPhoto(url, token) {
 function AuthPhoto({ url, token, style, placeholder, ...rest }) {
   const src = useAuthPhoto(url, token);
   if (src === null || src === "") {
-    return /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ import_react2.default.createElement(
       "div",
       {
         style: {
@@ -258,7 +268,7 @@ function AuthPhoto({ url, token, style, placeholder, ...rest }) {
       }
     );
   }
-  return /* @__PURE__ */ React.createElement("img", { src, style, ...rest });
+  return /* @__PURE__ */ import_react2.default.createElement("img", { src, style, ...rest });
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

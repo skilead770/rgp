@@ -1,6 +1,6 @@
 {
   "name": "react-google-photos-picker",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "React hook and utilities for the Google Photos Picker API — pick photos by link, no download or storage needed",
   "type": "module",
   "main": "./dist/index.cjs",

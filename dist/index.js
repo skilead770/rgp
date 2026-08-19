@@ -179,7 +179,7 @@ function thumbUrl(baseUrl, size = 300) {
 }
 
 // src/useAuthPhoto.jsx
-import { useEffect, useState as useState2 } from "react";
+import React, { useEffect, useState as useState2 } from "react";
 function useAuthPhoto(url, token) {
   const [src, setSrc] = useState2(null);
   useEffect(() => {
